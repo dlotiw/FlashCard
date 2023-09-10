@@ -2,9 +2,10 @@ from tkinter import *
 from tkinter import messagebox
 import pandas
 import random
+import os
 
 BACKGROUND_COLOR = "#B1DDC6"
-
+words_to_learn = []
 #----------Creating FlashCard----#
 
 class Card:
@@ -27,10 +28,14 @@ class Card:
             self.language = "Spanish"
     
     def get_word(self):
+        global words_to_learn
         try:
+            data = pandas.read_csv("FlashCard/data/words_to_learn.csv")
+            words_to_learn = data.to_dict(orient='records')
+        except pandas.errors.EmptyDataError:
             data = pandas.read_csv("FlashCard/data/spanish_words_200.csv")
         except FileNotFoundError:
-            messagebox.askretrycancel("No words to learn file found","Not found words list, make sure there is espanol_words.csv file in data folder and try again")
+            data = pandas.read_csv("FlashCard/data/spanish_words_200.csv")
         words = data.to_dict(orient="records")
         text=random.choice(words)
         self.word_spanish = text['Spanish']
@@ -52,12 +57,31 @@ def new_card():
         
 #----------Buttons Click-------#
 def righ_button_click():
+    global cardo
+    try:
+        words_to_learn.remove({"Spanish": cardo.word_spanish,"English": cardo.word_english})
+    except ValueError:
+        pass
+    try:
+        df = pandas.DataFrame(words_to_learn)
+        df.to_csv("FlashCard/data/words_to_learn.csv",index=False)
+    except pandas.errors.EmptyDataError:
+        pass
     new_card()
     screen.after(3000,change)
 
 def wrong_button_click():
+    global cardo
+    if cardo.word_spanish not in words_to_learn:
+        words_to_learn.append({"Spanish": cardo.word_spanish,"English": cardo.word_english})
     new_card()
     screen.after(3000,change)
+
+def on_closing():
+    if messagebox.askokcancel("Quit", "Do you want to quit?"):
+            df = pandas.DataFrame(words_to_learn)
+            df.to_csv("FlashCard/data/words_to_learn.csv",index=False)
+            screen.destroy()
 
 #---------------UI--------------#
 
@@ -87,5 +111,6 @@ right_button.grid(row=1,column=1)
 
 screen.after(3000,change)
 
+screen.protocol("WM_DELETE_WINDOW", on_closing)
 screen.mainloop()
 
